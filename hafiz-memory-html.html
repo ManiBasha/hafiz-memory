@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <!-- PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Hafiz Memory">
+  <meta name="theme-color" content="#7C3AED">
+  <meta name="description" content="Your personal knowledge management app - Hafiz Memory">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🧠</text></svg>">
+  
+  <!-- Apple Touch Icons -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' fill='%237C3AED'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='100'>🧠</text></svg>">
+  
+  <link rel="manifest" href="manifest.json">
+  
+  <title>Hafiz Memory - Personal Knowledge Manager</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      overscroll-behavior-y: contain;
+      -webkit-overflow-scrolling: touch;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-slide-up {
+      animation: slideUp 0.3s ease-out;
+    }
+
+    .line-clamp-3 {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    // Lucide Icons as inline SVG components
+    const Icons = {
+      Plus: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+      Image: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`,
+      Video: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>`,
+      FileText: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`,
+      Folder: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`,
+      Search: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>`,
+      X: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+      Trash2: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`,
+      FolderPlus: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>`
+    };
+
+    // Storage API wrapper
+    window.storage = {
+      get: async (key) => {
+        const value = localStorage.getItem(key);
+        return value ? { key, value, shared: false } : null;
+      },
+      set: async (key, value) => {
+        localStorage.setItem(key, value);
+        return { key, value, shared: false };
+      },
+      delete: async (key) => {
+        localStorage.removeItem(key);
+        return { key, deleted: true, shared: false };
+      },
+      list: async (prefix) => {
+        const keys = Object.keys(localStorage).filter(k => !prefix || k.startsWith(prefix));
+        return { keys, prefix, shared: false };
+      }
+    };
+
+    // Main App State
+    let state = {
+      categories: [],
+      items: [],
+      activeCategory: 'all',
+      showAddModal: false,
+      showCategoryModal: false,
+      searchQuery: '',
+      selectedItem: null,
+      newCategory: '',
+      newItem: {
+        type: 'note',
+        title: '',
+        content: '',
+        category: '',
+        url: '',
+        file: null
+      }
+    };
+
+    // Initialize app
+    async function init() {
+      // Register service worker
+      if ('serviceWorker' in navigator) {
+        try {
+          await navigator.serviceWorker.register('./sw.js');
+          console.log('Service Worker registered');
+        } catch (err) {
+          console.log('Service Worker registration failed:', err);
+        }
+      }
+
+      await loadData();
+      render();
+    }
+
+    async function loadData() {
+      try {
+        const catResult = await window.storage.get('hafiz-categories');
+        const itemsResult = await window.storage.get('hafiz-items');
+
+        if (catResult?.value) {
+          state.categories = JSON.parse(catResult.value);
+        } else {
+          state.categories = [
+            { id: '1', name: 'Ideas', color: '#8B5CF6', icon: '💡' },
+            { id: '2', name: 'Screenshots', color: '#EC4899', icon: '📸' },
+            { id: '3', name: 'Videos', color: '#F59E0B', icon: '🎬' },
+            { id: '4', name: 'Articles', color: '#10B981', icon: '📰' }
+          ];
+          await window.storage.set('hafiz-categories', JSON.stringify(state.categories));
+        }
+
+        if (itemsResult?.value) {
+          state.items = JSON.parse(itemsResult.value);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    }
+
+    async function saveItems() {
+      await window.storage.set('hafiz-items', JSON.stringify(state.items));
+    }
+
+    async function saveCategories() {
+      await window.storage.set('hafiz-categories', JSON.stringify(state.categories));
+    }
+
+    async function handleAddItem() {
+      if (!state.newItem.title || !state.newItem.category) return;
+
+      const item = {
+        id: Date.now().toString(),
+        type: state.newItem.type,
+        title: state.newItem.title,
+        content: state.newItem.content,
+        category: state.newItem.category,
+        url: state.newItem.url,
+        timestamp: new Date().toISOString(),
+        fileData: null
+      };
+
+      if (state.newItem.file) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          item.fileData = e.target.result;
+          state.items.push(item);
+          await saveItems();
+          resetForm();
+          render();
+        };
+        reader.readAsDataURL(state.newItem.file);
+      } else {
+        state.items.push(item);
+        await saveItems();
+        resetForm();
+        render();
+      }
+    }
+
+    async function handleAddCategory() {
+      if (!state.newCategory.trim()) return;
+      
+      const colors = ['#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444'];
+      const icons = ['📁', '⭐', '🎯', '🚀', '💎', '🔥'];
+      
+      const category = {
+        id: Date.now().toString(),
+        name: state.newCategory,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        icon: icons[Math.floor(Math.random() * icons.length)]
+      };
+
+      state.categories.push(category);
+      await saveCategories();
+      state.newCategory = '';
+      state.showCategoryModal = false;
+      render();
+    }
+
+    async function handleDeleteItem(id) {
+      state.items = state.items.filter(item => item.id !== id);
+      await saveItems();
+      state.selectedItem = null;
+      render();
+    }
+
+    function resetForm() {
+      state.newItem = {
+        type: 'note',
+        title: '',
+        content: '',
+        category: '',
+        url: '',
+        file: null
+      };
+      state.showAddModal = false;
+    }
+
+    function getFilteredItems() {
+      return state.items.filter(item => {
+        const matchesCategory = state.activeCategory === 'all' || item.category === state.activeCategory;
+        const matchesSearch = item.title.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+                             item.content.toLowerCase().includes(state.searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+      });
+    }
+
+    function getItemCount(categoryId) {
+      return state.items.filter(item => item.category === categoryId).length;
+    }
+
+    function render() {
+      const filteredItems = getFilteredItems();
+      
+      document.getElementById('root').innerHTML = `
+        <div class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+          <!-- Header -->
+          <div class="bg-black/30 backdrop-blur-lg border-b border-white/10">
+            <div class="max-w-7xl mx-auto px-6 py-4">
+              <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+                  🧠 Hafiz Memory
+                </h1>
+                <div class="flex gap-3">
+                  <button onclick="state.showCategoryModal = true; render()" class="px-4 py-2 bg-purple-600/80 hover:bg-purple-600 text-white rounded-lg flex items-center gap-2 transition-all">
+                    <span>${Icons.FolderPlus}</span>
+                    <span class="hidden sm:inline">New Category</span>
+                  </button>
+                  <button onclick="state.showAddModal = true; render()" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg flex items-center gap-2 transition-all">
+                    <span>${Icons.Plus}</span>
+                    <span class="hidden sm:inline">Add Item</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Search -->
+              <div class="mt-4 relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">${Icons.Search}</span>
+                <input
+                  type="text"
+                  placeholder="Search your memory..."
+                  value="${state.searchQuery}"
+                  oninput="state.searchQuery = this.value; render()"
+                  class="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Categories -->
+          <div class="max-w-7xl mx-auto px-6 py-6">
+            <div class="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+              <button
+                onclick="state.activeCategory = 'all'; render()"
+                class="px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
+                  state.activeCategory === 'all'
+                    ? 'bg-white text-purple-900 font-semibold'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }"
+              >
+                All (${state.items.length})
+              </button>
+              ${state.categories.map(cat => `
+                <button
+                  onclick="state.activeCategory = '${cat.id}'; render()"
+                  class="px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
+                    state.activeCategory === cat.id
+                      ? 'text-white font-semibold'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }"
+                  style="${state.activeCategory === cat.id ? `background-color: ${cat.color}` : ''}"
+                >
+                  ${cat.icon} ${cat.name} (${getItemCount(cat.id)})
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Items Grid -->
+          <div class="max-w-7xl mx-auto px-6 pb-12">
+            ${filteredItems.length === 0 ? `
+              <div class="text-center py-20 text-gray-400">
+                <p class="text-xl">No items yet. Start adding to your memory!</p>
+              </div>
+            ` : `
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                ${filteredItems.map(item => {
+                  const category = state.categories.find(c => c.id === item.category);
+                  return `
+                    <div
+                      onclick='state.selectedItem = ${JSON.stringify(item).replace(/'/g, "\\'")}; render()'
+                      class="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all cursor-pointer animate-slide-up"
+                    >
+                      ${item.fileData ? `
+                        <div class="mb-3 rounded-lg overflow-hidden">
+                          ${item.type === 'screenshot' || item.type === 'image' ? `
+                            <img src="${item.fileData}" alt="${item.title}" class="w-full h-48 object-cover" />
+                          ` : item.type === 'video' ? `
+                            <video src="${item.fileData}" class="w-full h-48 object-cover" controls></video>
+                          ` : ''}
+                        </div>
+                      ` : ''}
+                      
+                      ${item.url ? `
+                        <div class="mb-3 text-purple-300 text-sm truncate">
+                          🔗 ${item.url}
+                        </div>
+                      ` : ''}
+
+                      <div class="flex items-start justify-between gap-2">
+                        <h3 class="text-white font-semibold text-lg flex-1">${item.title}</h3>
+                        ${category ? `<span class="text-xl">${category.icon}</span>` : ''}
+                      </div>
+                      
+                      ${item.content ? `
+                        <p class="text-gray-300 mt-2 text-sm line-clamp-3">${item.content}</p>
+                      ` : ''}
+                      
+                      <div class="mt-3 flex items-center justify-between text-xs text-gray-400">
+                        <span>${new Date(item.timestamp).toLocaleDateString()}</span>
+                        ${category ? `
+                          <span class="px-2 py-1 rounded" style="background-color: ${category.color}40">
+                            ${category.name}
+                          </span>
+                        ` : ''}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `}
+          </div>
+
+          ${state.showAddModal ? renderAddModal() : ''}
+          ${state.showCategoryModal ? renderCategoryModal() : ''}
+          ${state.selectedItem ? renderItemDetail() : ''}
+        </div>
+      `;
+    }
+
+    function renderAddModal() {
+      return `
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div class="bg-slate-800 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-2xl font-bold text-white">Add New Item</h2>
+              <button onclick="state.showAddModal = false; render()" class="text-gray-400 hover:text-white">
+                ${Icons.X}
+              </button>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2 mb-6">
+              ${[
+                { type: 'note', label: 'Note', icon: 'FileText' },
+                { type: 'screenshot', label: 'Screenshot', icon: 'Image' },
+                { type: 'video', label: 'Video', icon: 'Video' },
+                { type: 'link', label: 'Link', icon: 'Folder' }
+              ].map(({ type, label, icon }) => `
+                <button
+                  onclick="state.newItem.type = '${type}'; render()"
+                  class="p-3 rounded-lg flex flex-col items-center gap-2 transition-all ${
+                    state.newItem.type === type
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                  }"
+                >
+                  ${Icons[icon]}
+                  <span class="text-sm">${label}</span>
+                </button>
+              `).join('')}
+            </div>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-white mb-2">Title *</label>
+                <input
+                  id="item-title"
+                  type="text"
+                  value="${state.newItem.title}"
+                  oninput="state.newItem.title = this.value"
+                  class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Enter title..."
+                />
+              </div>
+
+              <div>
+                <label class="block text-white mb-2">Category *</label>
+                <select
+                  onchange="state.newItem.category = this.value"
+                  class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">Select category</option>
+                  ${state.categories.map(cat => `
+                    <option value="${cat.id}" ${state.newItem.category === cat.id ? 'selected' : ''}>
+                      ${cat.icon} ${cat.name}
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+
+              ${(state.newItem.type === 'screenshot' || state.newItem.type === 'video') ? `
+                <div>
+                  <label class="block text-white mb-2">Upload File</label>
+                  <input
+                    type="file"
+                    accept="${state.newItem.type === 'screenshot' ? 'image/*' : 'video/*'}"
+                    onchange="state.newItem.file = this.files[0]"
+                    class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
+                  />
+                </div>
+              ` : ''}
+
+              ${state.newItem.type === 'link' ? `
+                <div>
+                  <label class="block text-white mb-2">URL</label>
+                  <input
+                    type="url"
+                    value="${state.newItem.url}"
+                    oninput="state.newItem.url = this.value"
+                    class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="https://..."
+                  />
+                </div>
+              ` : ''}
+
+              <div>
+                <label class="block text-white mb-2">Notes</label>
+                <textarea
+                  oninput="state.newItem.content = this.value"
+                  rows="4"
+                  class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Add your thoughts..."
+                >${state.newItem.content}</textarea>
+              </div>
+
+              <button
+                onclick="handleAddItem()"
+                class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-semibold transition-all"
+              >
+                Save to Memory
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCategoryModal() {
+      return `
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div class="bg-slate-800 rounded-2xl p-6 max-w-md w-full">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-2xl font-bold text-white">New Category</h2>
+              <button onclick="state.showCategoryModal = false; render()" class="text-gray-400 hover:text-white">
+                ${Icons.X}
+              </button>
+            </div>
+
+            <input
+              type="text"
+              value="${state.newCategory}"
+              oninput="state.newCategory = this.value"
+              onkeypress="if(event.key === 'Enter') handleAddCategory()"
+              class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 mb-4"
+              placeholder="Category name..."
+            />
+
+            <button
+              onclick="handleAddCategory()"
+              class="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-all"
+            >
+              Create Category
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderItemDetail() {
+      const item = state.selectedItem;
+      return `
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div class="bg-slate-800 rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-2xl font-bold text-white">${item.title}</h2>
+              <div class="flex gap-2">
+                <button
+                  onclick="handleDeleteItem('${item.id}')"
+                  class="p-2 text-red-400 hover:text-red-300 transition-all"
+                >
+                  ${Icons.Trash2}
+                </button>
+                <button
+                  onclick="state.selectedItem = null; render()"
+                  class="p-2 text-gray-400 hover:text-white transition-all"
+                >
+                  ${Icons.X}
+                </button>
+              </div>
+            </div>
+
+            ${item.fileData ? `
+              <div class="mb-4 rounded-lg overflow-hidden">
+                ${item.type === 'screenshot' || item.type === 'image' ? `
+                  <img src="${item.fileData}" alt="${item.title}" class="w-full" />
+                ` : item.type === 'video' ? `
+                  <video src="${item.fileData}" class="w-full" controls></video>
+                ` : ''}
+              </div>
+            ` : ''}
+
+            ${item.url ? `
+              <a
+                href="${item.url}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="block mb-4 text-purple-400 hover:text-purple-300 underline"
+              >
+                ${item.url}
+              </a>
+            ` : ''}
+
+            ${item.content ? `
+              <div class="text-gray-300 whitespace-pre-wrap mb-4">
+                ${item.content}
+              </div>
+            ` : ''}
+
+            <div class="text-sm text-gray-400">
+              Added on ${new Date(item.timestamp).toLocaleString()}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Start the app
+    init();
+  </script>
+</body>
+</html>
